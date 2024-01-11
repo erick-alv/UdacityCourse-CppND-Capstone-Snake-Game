@@ -77,3 +77,23 @@ bool Snake::SnakeCell(int x, int y) {
   }
   return false;
 }
+
+void Snake::RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) const {
+  // Render snake's body
+  SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+  for (SDL_Point const &point : body) {
+    block.x = point.x * block.w;
+    block.y = point.y * block.h;
+    SDL_RenderFillRect(sdl_renderer, &block);
+  }
+
+  // Render snake's head
+  block.x = static_cast<int>(head_x) * block.w;
+  block.y = static_cast<int>(head_y) * block.h;
+  if (alive) {
+    SDL_SetRenderDrawColor(sdl_renderer, 0x00, 0x7A, 0xCC, 0xFF);
+  } else {
+    SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0x00, 0x00, 0xFF);
+  }
+  SDL_RenderFillRect(sdl_renderer, &block);
+}
