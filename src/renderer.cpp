@@ -38,7 +38,7 @@ Renderer::~Renderer() {
   SDL_Quit();
 }
 
-void Renderer::Render(Snake const snake, Food const &food) {
+void Renderer::Render(Snake snake, Food &food, std::vector<Renderable*> &objectsToRender) {
   SDL_Rect block;
   block.w = screen_width / grid_width;
   block.h = screen_height / grid_height;
@@ -52,6 +52,10 @@ void Renderer::Render(Snake const snake, Food const &food) {
 
   // Render snake
   snake.RenderObject(sdl_renderer, block);
+
+  for(Renderable * objPtr: objectsToRender) {
+    objPtr->RenderObject(sdl_renderer, block);
+  }
 
   // Update Screen
   SDL_RenderPresent(sdl_renderer);

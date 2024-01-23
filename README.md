@@ -44,3 +44,18 @@ This work is licensed under a
 [cc-by-sa]: http://creativecommons.org/licenses/by-sa/4.0/
 [cc-by-sa-image]: https://licensebuttons.net/l/by-sa/4.0/88x31.png
 [cc-by-sa-shield]: https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg
+
+# Added Features and Satisfied criteria
+* **Storing scores:** This game saves the scores of the players in a file named 'scores.txt'. In this file we save the name of the player, the last achieved score and the best scored with comma separated format. Each line saves the information for each player. In order to identify a player, the user must insert a name at the beginning. Furthermore, we verify if the name already exists in the file to avoid duplicates. If the name already exists, the player can choose to continue with that name.
+**Satisfied criteria:** With these aspects we read and process user input and read and write to files. This fulfills 2 aspects of the "Loops, Functions, I/O" section. Moreove we wrote a class to handle the file as a resource that is opened in the constructor and closed in the destructor. This uses RAII.
+
+* **Addition of abstracts classes**: In order to facilitate the extension of the game with new objects, we create additional abstract classes. One of this is the Renderable class that has a method to a object. With this we can esily extend the game with new objet that must be renderd on screen.
+**Satisfied criteria:** This fulfills an aspect of the "Object Oriented Programming" section.
+
+* **Other satisified criteria:** 
+  * Overall we structure our code in different functions and use multiple control structures. This fulfills another criterium of the "Loops, Functions, I/O" section.
+  * We use different structures, like vectors, to store game objects and immutable variables, like the name of the scores file. This fulfills another criterium of the "Loops, Functions, I/O" section.
+
+
+# Game Instructions
+* Once the game starts the player must provide a name in order to store the score. This can be either a new name or an existent name.

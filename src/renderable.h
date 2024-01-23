@@ -7,7 +7,7 @@
 class Renderable {
 
 public:
-    virtual void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) const = 0;
+    virtual void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) = 0;
 
 
 };

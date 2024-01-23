@@ -20,7 +20,7 @@ class Snake: public Renderable {
   void GrowBody();
   bool SnakeCell(int x, int y);
 
-  void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) const;
+  void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block);
 
   Direction direction = Direction::kUp;
 

@@ -1,13 +1,20 @@
 #include "game.h"
 #include <iostream>
+#include <algorithm>
 #include "SDL.h"
+
+// TODO look into all files into which methods were not used at the end
+// TODO see which thinks you can change with a smart pointer
 
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height),
       engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
-      random_h(0, static_cast<int>(grid_height - 1)) {
+      random_h(0, static_cast<int>(grid_height - 1)),
+      powerup(&incr, this) {
   PlaceFood();
+  objectsToRender.push_back(&powerup);
+  powerup.Start();
 }
 
 void Game::Run(Controller const &controller, Renderer &renderer,
@@ -25,7 +32,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    renderer.Render(snake, food);
+    renderer.Render(snake, food, objectsToRender);
 
     frame_end = SDL_GetTicks();
 
@@ -50,19 +57,37 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   }
 }
 
-void Game::PlaceFood() {
-  int x, y;
-  while (true) {
-    x = random_w(engine);
-    y = random_h(engine);
-    // Check that the location is not occupied by a snake item before placing
-    // food.
-    if (!snake.SnakeCell(x, y)) {
-      food.x = x;
-      food.y = y;
-      return;
+SDL_Point Game::GetFreePosition(bool checkAlsoFood){
+  std::lock_guard<std::mutex> lg(_mutex);
+  SDL_Point pos;
+  bool valid_position = false;
+  while(!valid_position) {
+    pos.x = random_w(engine);
+    pos.y = random_h(engine); 
+    if (checkAlsoFood) {
+      valid_position = !snake.SnakeCell(pos.x, pos.y) && !(pos.x == food.x && pos.y == food.y);
+    } else {
+      valid_position = !snake.SnakeCell(pos.x, pos.y);
     }
+
   }
+  return pos;
+}
+
+void Game::PlaceFood() {
+  SDL_Point freePos = GetFreePosition(false);
+  food.x = freePos.x;
+  food.y = freePos.y;
+}
+
+void Game::SetIncr(int value) {
+  std::lock_guard<std::mutex> lg(_mutex);
+  incr = value;
+}
+
+void Game::IncreaseScore() {
+  std::lock_guard<std::mutex> lg(_mutex);
+  score+=incr;
 }
 
 void Game::Update() {
@@ -75,12 +100,17 @@ void Game::Update() {
 
   // Check if there's food over here
   if (food.x == new_x && food.y == new_y) {
-    score++;
+    IncreaseScore();
     PlaceFood();
     // Grow snake and increase speed.
     snake.GrowBody();
     snake.speed += 0.02;
   }
+
+  // Check powerup collection
+  powerup.CheckCollection(new_x, new_y);
+
+
 }
 
 int Game::GetScore() const { return score; }

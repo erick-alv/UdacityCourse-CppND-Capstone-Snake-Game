@@ -78,7 +78,7 @@ bool Snake::SnakeCell(int x, int y) {
   return false;
 }
 
-void Snake::RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) const {
+void Snake::RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) {
   // Render snake's body
   SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
   for (SDL_Point const &point : body) {

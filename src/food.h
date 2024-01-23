@@ -6,7 +6,7 @@
 class Food: public Renderable {
 public:
     
-    void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block) const;
+    void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block);
 
     int x = 0;
     int y = 0;
