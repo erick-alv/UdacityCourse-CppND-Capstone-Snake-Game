@@ -2,6 +2,7 @@
 #define SNAKE_H
 
 #include <vector>
+#include <mutex>
 #include "renderable.h"
 #include "SDL.h"
 
@@ -19,6 +20,8 @@ class Snake: public Renderable {
 
   void GrowBody();
   bool SnakeCell(int x, int y);
+  int GetLives();
+  void IncreaseLives();
 
   void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block);
 
@@ -38,6 +41,9 @@ class Snake: public Renderable {
   bool growing{false};
   int grid_width;
   int grid_height;
+  int lives{1};
+  bool justLostLive{false};
+  std::mutex _mutex;
 };
 
 #endif

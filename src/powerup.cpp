@@ -2,19 +2,18 @@
 #include <chrono>
 #include <random>
 #include <mutex>
-#include <iostream>
 #include <algorithm>
-#include <future>
 #include <thread>
+#include <future>
 #include "powerup.h"
 #include "game.h"
 
-//TODO delete not necessary inlcudes
 
+const int powerupDuration = 6000;
+const int minCycleDuration = 6000;
+const int maxCycleDuration = 8000;
 
-Powerup::Powerup(int* incrementer, Game* g): gameScoreIncrementer(incrementer) {
-    game = g;
-}
+Powerup::Powerup(Game* g): game(g) {}
 
 Powerup::~Powerup() {
     std::unique_lock<std::mutex> lck(_mutex);
@@ -29,46 +28,60 @@ void Powerup::Start() {
     threads.emplace_back(std::thread(&Powerup::ToggleState, this));
 }
 
-void Powerup::RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block){
-    std::unique_lock<std::mutex> lck(_mutex);
-    PowerupState currentState = _state;
-    lck.unlock();
-    if(currentState == PowerupState::ON_FIELD) {
-        SDL_SetRenderDrawColor(sdl_renderer, 0x00, 0xCC, 0xFF, 0xFF);
-        block.x = x * block.w;
-        block.y = y * block.h;
-        SDL_RenderFillRect(sdl_renderer, &block);
-    } else if(currentState == PowerupState::COLLECTED){//todo to debug render something while collected
-        SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xFF, 0x00, 0xFF);
-        block.x = x * block.w;
-        block.y = y * block.h;
-        SDL_RenderFillRect(sdl_renderer, &block);
+Powerup::Powerup(Powerup&& other){
+    std::unique_lock<std::mutex> lck(other._mutex);
+    x = other.x;
+    y = other.y;
+    game = other.game;
+    threads = std::move(other.threads);
+    _state = other._state;
+    _runThread = other._runThread;
+    //Cannot move mutex   
+
+    other.game = nullptr;
+}
+
+Powerup& Powerup::operator=(Powerup&& other) {
+    if(this == &other) {
+        return *this;
     }
+    //stop threads of this
+    std::unique_lock<std::mutex> lck(_mutex);
+    _runThread = false;
+    lck.unlock();
+    std::for_each(threads.begin(), threads.end(), [](std::thread &t) {
+        t.join();
+    });
+
+    std::unique_lock<std::mutex> lck_other(other._mutex);
+    x = other.x;
+    y = other.y;
+    game = other.game;
+    threads = std::move(other.threads);
+    _state = other._state;
+    _runThread = other._runThread;
+    //Cannot move mutex   
+
+    other.game = nullptr;
+
+    return *this;
 }
 
 void Powerup::CheckCollection(int snake_x, int snake_y){
     std::lock_guard<std::mutex> lg(_mutex);
     PowerupState currentState = _state;
     if(currentState == PowerupState::ON_FIELD && x == snake_x && y == snake_y) {
-        game->SetIncr(2);
+        CollectedActionStart();
         _state = PowerupState::COLLECTED;
     }
-
 }
-
-PowerupState Powerup::GetState() {
-    std::lock_guard<std::mutex> lg(_mutex);
-    return _state;
-
-}
-
 
 void Powerup::ToggleState() {
     double thisCycleDuration = 0;
     double currentDuration = 0;
     std::chrono::time_point<std::chrono::system_clock> lastUpdate;
     //variables for random generation
-    std::uniform_int_distribution<long> distr(6000, 8000);
+    std::uniform_int_distribution<long> distr(minCycleDuration, maxCycleDuration);
     std::random_device rd;
     std::mt19937 engine = std::mt19937(rd());
     
@@ -79,8 +92,6 @@ void Powerup::ToggleState() {
     {
         lck.unlock();//Unlock for the rest
         
-
-        //std::cout << "Here";
         //Set duration for cycle
         if(thisCycleDuration == 0) {
             thisCycleDuration = distr(engine);
@@ -110,7 +121,7 @@ void Powerup::ToggleState() {
                 {
                     _state = PowerupState::ON_FIELD;
                     lck.unlock();
-                    std::future<SDL_Point> ftrFreePos = std::async(&Game::GetFreePosition, game, true);//TODO make shared pointer for game
+                    std::future<SDL_Point> ftrFreePos = std::async(&Game::GetFreePosition, game, true);
                     SDL_Point freePos = ftrFreePos.get();
                     lck.lock();
                     x = freePos.x;
@@ -118,26 +129,23 @@ void Powerup::ToggleState() {
                 }
             } else if (prevState == PowerupState::ON_FIELD && currentState == PowerupState::COLLECTED) { //It was collected in the meantime
                 //Set the durations of the cycles for the durations of the poweruo
-                thisCycleDuration = 10000; //TODO make variable
+                thisCycleDuration = powerupDuration;
                 currentDuration = 0;
             } else if(prevState==PowerupState::COLLECTED && currentState == PowerupState::COLLECTED) {//The time of collected state ends
                 _state = PowerupState::OFF_FIELD;
-                game->SetIncr(1);
+                CollectedActionFinish();
             }
             lck.unlock();
-        } else { //Verify if was collected in tehtime in between
+        } else { //Verify if was collected in the time in between
             if (prevState == PowerupState::ON_FIELD && currentState == PowerupState::COLLECTED) {
                 //Set the durations of the cycles for the durations of the poweruo
-                thisCycleDuration = 10000; //TODO make variable
+                thisCycleDuration = powerupDuration;
                 currentDuration = 0;
             }
-
         }
-        //TODO check if was collected
         //Lock to read condition for while
         lck.lock();
         prevState = currentState; //To keep track when the powerup is collected   
     }
-    //TODO wait for this thread on game.cpps
 
 }

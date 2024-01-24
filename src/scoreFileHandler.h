@@ -13,10 +13,15 @@ typedef struct ScoreInfo{
 
 class ScoreFileHandler {
 public:
-    ScoreFileHandler(std::string filename);
+    ScoreFileHandler();
+    ScoreFileHandler(const std::string& filename);
     ~ScoreFileHandler();
-    bool nameIsSaved(std::string seekName);
-    void writeFinalScore(std::string name, int score);
+    ScoreFileHandler(ScoreFileHandler& other) = delete;
+    ScoreFileHandler& operator=(ScoreFileHandler& other) = delete;
+    ScoreFileHandler(ScoreFileHandler&& other);
+    ScoreFileHandler& operator=(ScoreFileHandler&& other);
+    bool nameIsSaved(std::string& seekName);
+    void writeFinalScore(std::string& name, int score);
 
 private:
     void ParseFile();

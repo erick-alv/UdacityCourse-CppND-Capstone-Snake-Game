@@ -4,6 +4,8 @@
 
 #include "renderable.h"
 #include <mutex>
+#include <thread>
+#include <memory>
 
 class Game; //Forward declaration
 
@@ -17,29 +19,31 @@ enum PowerupState {
 class Powerup: public Renderable {
 public:
 
-    Powerup(int* incrementer, Game* g);
+    Powerup(Game* g);
     ~Powerup();
+    Powerup(Powerup& other) = delete;
+    Powerup& operator=(Powerup& other) = delete;
+    Powerup(Powerup&& other);
+    Powerup& operator=(Powerup&& other);
+
     void Start();
-    void RenderObject(SDL_Renderer *sdl_renderer, SDL_Rect &block);
     void CheckCollection(int snake_x, int snake_y);
-    void ToggleState(); //Run by a separate thread;
-    PowerupState GetState();
+    void ToggleState(); //Run by a separate thread
 
     int x = 0;
     int y = 0;
+    Game* game;
 
-    //TODO not have pointer, but pointer to function that sets the value
-    int* gameScoreIncrementer;
-    Game *game;
+protected:
 
-private:
+    virtual void CollectedActionStart() = 0;
+    virtual void CollectedActionFinish() = 0;
 
     std::vector<std::thread> threads;
-
     //variables accessed by multiple threads
     PowerupState _state{PowerupState::OFF_FIELD};
     bool _runThread{true};
-    std::mutex _mutex;    
+    std::mutex _mutex;  
 };
 
 #endif

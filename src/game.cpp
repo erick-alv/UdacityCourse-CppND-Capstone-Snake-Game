@@ -3,18 +3,21 @@
 #include <algorithm>
 #include "SDL.h"
 
-// TODO look into all files into which methods were not used at the end
-// TODO see which thinks you can change with a smart pointer
-
 Game::Game(std::size_t grid_width, std::size_t grid_height)
-    : snake(grid_width, grid_height),
+    : snake(std::make_shared<Snake>(grid_width, grid_height)),
       engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
       random_h(0, static_cast<int>(grid_height - 1)),
-      powerup(&incr, this) {
+      food(std::make_shared<Food>()),
+      doubleScrPowerup(std::make_shared<DoubleScore>(this)),
+      livePowerup(std::make_shared<ExtraLive>(this)) {
   PlaceFood();
-  objectsToRender.push_back(&powerup);
-  powerup.Start();
+  objectsToRender.push_back(snake);
+  objectsToRender.push_back(food);
+  objectsToRender.push_back(doubleScrPowerup);
+  objectsToRender.push_back(livePowerup);
+  doubleScrPowerup->Start();
+  livePowerup->Start();
 }
 
 void Game::Run(Controller const &controller, Renderer &renderer,
@@ -32,7 +35,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    renderer.Render(snake, food, objectsToRender);
+    renderer.Render(objectsToRender);
 
     frame_end = SDL_GetTicks();
 
@@ -43,7 +46,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 
     // After every second, update the window title.
     if (frame_end - title_timestamp >= 1000) {
-      renderer.UpdateWindowTitle(score, frame_count);
+      renderer.UpdateWindowTitle(score, frame_count, snake->GetLives());
       frame_count = 0;
       title_timestamp = frame_end;
     }
@@ -63,21 +66,19 @@ SDL_Point Game::GetFreePosition(bool checkAlsoFood){
   bool valid_position = false;
   while(!valid_position) {
     pos.x = random_w(engine);
-    pos.y = random_h(engine); 
+    pos.y = random_h(engine);
+    valid_position = !snake->SnakeCell(pos.x, pos.y) && !(pos.x == doubleScrPowerup->x && pos.y == doubleScrPowerup->y) && !(pos.x == livePowerup->x && pos.y == livePowerup->y);
     if (checkAlsoFood) {
-      valid_position = !snake.SnakeCell(pos.x, pos.y) && !(pos.x == food.x && pos.y == food.y);
-    } else {
-      valid_position = !snake.SnakeCell(pos.x, pos.y);
+      valid_position = valid_position && !(pos.x == food->x && pos.y == food->y);
     }
-
   }
   return pos;
 }
 
 void Game::PlaceFood() {
   SDL_Point freePos = GetFreePosition(false);
-  food.x = freePos.x;
-  food.y = freePos.y;
+  food->x = freePos.x;
+  food->y = freePos.y;
 }
 
 void Game::SetIncr(int value) {
@@ -90,28 +91,33 @@ void Game::IncreaseScore() {
   score+=incr;
 }
 
+void Game::IncreaseLives() {
+  snake->IncreaseLives();
+}
+
 void Game::Update() {
-  if (!snake.alive) return;
+  if (!snake->alive) return;
 
-  snake.Update();
+  snake->Update();
 
-  int new_x = static_cast<int>(snake.head_x);
-  int new_y = static_cast<int>(snake.head_y);
+  int new_x = static_cast<int>(snake->head_x);
+  int new_y = static_cast<int>(snake->head_y);
 
   // Check if there's food over here
-  if (food.x == new_x && food.y == new_y) {
+  if (food->x == new_x && food->y == new_y) {
     IncreaseScore();
     PlaceFood();
     // Grow snake and increase speed.
-    snake.GrowBody();
-    snake.speed += 0.02;
+    snake->GrowBody();
+    snake->speed += 0.02;
   }
 
   // Check powerup collection
-  powerup.CheckCollection(new_x, new_y);
+  doubleScrPowerup->CheckCollection(new_x, new_y);
+  livePowerup->CheckCollection(new_x, new_y);
 
 
 }
 
 int Game::GetScore() const { return score; }
-int Game::GetSize() const { return snake.size; }
+int Game::GetSize() const { return snake->size; }

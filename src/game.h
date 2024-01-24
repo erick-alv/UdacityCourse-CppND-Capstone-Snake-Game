@@ -4,12 +4,14 @@
 #include <random>
 #include <vector>
 #include <thread>
+#include <memory>
 #include "SDL.h"
 #include "controller.h"
 #include "renderer.h"
 #include "snake.h"
 #include "food.h"
-#include "powerup.h"
+#include "doubleScore.h"
+#include "extraLive.h"
 #include "renderable.h"
 
 class Game {
@@ -21,13 +23,15 @@ class Game {
   int GetSize() const;
   void SetIncr(int value);
   SDL_Point GetFreePosition(bool checkAlsoFood);
+  void IncreaseLives();
   
 
  private:
-  Snake snake;
-  Food food;
-  std::vector<Renderable*> objectsToRender;
-  Powerup powerup;
+  std::shared_ptr<Snake> snake;
+  std::shared_ptr<Food> food;
+  std::vector<std::shared_ptr<Renderable>> objectsToRender;
+  std::shared_ptr<DoubleScore> doubleScrPowerup;
+  std::shared_ptr<ExtraLive> livePowerup;
   int incr{1};
   int score{0};
 

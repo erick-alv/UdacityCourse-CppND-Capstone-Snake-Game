@@ -6,7 +6,11 @@
 #include <sstream>
 #include "scoreFileHandler.h"
 
-ScoreFileHandler::ScoreFileHandler(std::string filename){
+ScoreFileHandler::ScoreFileHandler() {
+
+}
+
+ScoreFileHandler::ScoreFileHandler(const std::string& filename){
     fileHandle.open(filename, std::fstream::in | std::fstream::out);
 
     // If file does not exist creates it;
@@ -25,7 +29,31 @@ ScoreFileHandler::ScoreFileHandler(std::string filename){
 }
 
 ScoreFileHandler::~ScoreFileHandler(){
+    fileHandle.close();    
+}
+
+ScoreFileHandler::ScoreFileHandler(ScoreFileHandler&& other) {
+    fileHandle = std::move(other.fileHandle);//already implemented by std
+    savedScores = std::move(other.savedScores);
+
+    other.fileHandle.close();
+}
+    
+ScoreFileHandler& ScoreFileHandler::operator=(ScoreFileHandler&& other){
+
+    if(&other == this) {
+        return *this;
+    }
     fileHandle.close();
+    savedScores.clear();
+
+    fileHandle = std::move(other.fileHandle);//already implemented by std
+    savedScores = std::move(other.savedScores);
+
+    other.fileHandle.close();
+
+
+    return *this;
 }
 
 void ScoreFileHandler::ParseFile() {
@@ -45,7 +73,7 @@ void ScoreFileHandler::ParseFile() {
     }
 }
 
-bool ScoreFileHandler::nameIsSaved(std::string seekName){
+bool ScoreFileHandler::nameIsSaved(std::string& seekName){
     for (ScoreInfo &si: savedScores) {
         if(si.name == seekName) {
             return true;
@@ -54,7 +82,7 @@ bool ScoreFileHandler::nameIsSaved(std::string seekName){
     return false;
 }
 
-void ScoreFileHandler::writeFinalScore(std::string name, int score){
+void ScoreFileHandler::writeFinalScore(std::string& name, int score){
     bool foundName = false;
     for (ScoreInfo &si: savedScores) {
         if(si.name == name) {
